@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 	"scootin/db"
-	"scootin/loger"
+	"scootin/logger"
 	"scootin/service"
 )
 

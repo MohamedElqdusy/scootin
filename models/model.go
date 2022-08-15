@@ -1,7 +1,7 @@
 package models
 
 import (
-	logger "scootin/loger"
+	"scootin/logger"
 	"sync"
 	"time"
 )

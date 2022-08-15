@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"scootin/db"
-	"scootin/loger"
+	"scootin/logger"
 	"scootin/models"
 
 	"github.com/google/uuid"
