@@ -14,7 +14,7 @@ type Repository interface {
 	ListAvailableScooter(ctx context.Context) ([]models.ScooterInfo, error)
 
 	// CreateUser stores a new user
-	CreateUser(ctx context.Context, userID string) error
+	CreateUser(ctx context.Context, user *models.User) error
 
 	// CreateScooter creates a new scooter
 	CreateScooter(ctx context.Context, scooterID string) error
@@ -44,8 +44,8 @@ func CreateScooter(ctx context.Context, scooterID string) error {
 }
 
 // CreateUser ...
-func CreateUser(ctx context.Context, userID string) error {
-	return repositoryImpl.CreateUser(ctx, userID)
+func CreateUser(ctx context.Context, user *models.User) error {
+	return repositoryImpl.CreateUser(ctx, user)
 }
 
 // UpdateScooterCoordinates ...

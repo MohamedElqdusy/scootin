@@ -38,8 +38,8 @@ func (p *PostgreRepository) CreateScooter(ctx context.Context, scooterID string)
 	return err
 }
 
-func (p *PostgreRepository) CreateUser(ctx context.Context, userID string) error {
-	_, err := p.db.Exec("INSERT INTO uers(id) VALUES($1)", userID)
+func (p *PostgreRepository) CreateUser(ctx context.Context, user *models.User) error {
+	_, err := p.db.Exec("INSERT INTO uers(id,name,email) VALUES($1,$2,$3)", user.ID, user.Name, user.Email)
 	return err
 }
 

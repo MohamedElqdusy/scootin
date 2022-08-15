@@ -28,7 +28,9 @@ type LocationUpdate struct {
 }
 
 type User struct {
-	ID string
+	ID    string
+	Name  string
+	Email string
 }
 
 // Event represents the scooter's trip event, End is false for Start()
