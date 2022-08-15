@@ -3,6 +3,8 @@ module scootin
 go 1.17
 
 require (
+	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/lib/pq v1.10.6
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	go.uber.org/zap v1.22.0
 )
