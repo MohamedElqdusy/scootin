@@ -5,7 +5,7 @@ import (
 	"scootin/config"
 )
 
-func InitiatPostgre() error {
+func InitiatePostgre() error {
 	pc, err := config.IniatilizePostgreConfig()
 	if err != nil {
 		return err

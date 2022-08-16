@@ -15,7 +15,7 @@ func main() {
 	logger.InitLogger(log)
 	defer logger.Sync()
 
-	if err := db.InitiatPostgre(); err != nil {
+	if err := db.InitiatePostgre(); err != nil {
 		panic(err)
 	}
 	//  create a new *router instance
