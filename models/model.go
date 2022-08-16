@@ -8,9 +8,9 @@ import (
 	"time"
 )
 
-// Scooter embodies the scooter functionality
+// Scooter embodies the scooter functionality i.e, scooter runtime instance.
 type Scooter struct {
-	Info *ScooterInfo
+	Info ScooterInfo
 	Done chan bool
 	mu   *sync.Mutex
 }
@@ -37,7 +37,7 @@ type User struct {
 }
 
 // UUIDResponse used to return the uuid for the new user's and scooter's creation
-type UUIDResponse struct{
+type UUIDResponse struct {
 	ID string
 }
 
@@ -47,6 +47,16 @@ type Event struct {
 	ScooterID string
 	UserID    string
 	End       bool
+}
+
+// NewScooter returns a new scooter runtime instance
+func NewScooter(ID string) *Scooter {
+	return &Scooter{Info: ScooterInfo{
+		ID: ID,
+	},
+		Done: make(chan bool),
+		mu:   &sync.Mutex{}}
+
 }
 
 // IsOccupied returns true if the scooter is being used, false otherwise.
@@ -89,8 +99,8 @@ func (s *Scooter) Updates() {
 			logger.Infof("%+v", LocationUpdate{ScooterID: s.Info.ID, Coordinates: s.Info.Coordination, Time: time.Now()})
 
 			// Persist the scooter coordination in the database
-			if err := db.UpdateScooterCoordinates(context.Background(),s.Info.ID,s.Info.Coordination); err != nil {
-				logger.Errorf("couldn't persist the scooter %s updates: %s",s.Info.ID,err)
+			if err := db.UpdateScooterCoordinates(context.Background(), s.Info.ID, s.Info.Coordination); err != nil {
+				logger.Errorf("couldn't persist the scooter %s updates: %s", s.Info.ID, err)
 			}
 			s.mu.Unlock()
 		}

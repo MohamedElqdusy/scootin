@@ -27,10 +27,9 @@ func BookScooter(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func ReleaseScooter(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	scooterID := ps.ByName("scooter_id")
 	userID := r.Header.Get("user-id")
-	if err := db.ReleaseScooter(r.Context(), scooterID, userID); err != nil {
-		logger.Errorf("couldn't release scooter %s for user %s: %s", scooterID, userID, err)
+	if err := db.ReleaseScooter(r.Context(), userID); err != nil {
+		logger.Errorf("couldn't release scooter for user %s: %s", userID, err)
 		http.Error(w, err.Error(), 500)
 	}
 }
@@ -74,7 +73,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	// returns the user UUID
-	if err = json.NewEncoder(w).Encode(models.UUIDResponse{ID:user.ID}); err != nil {
+	if err = json.NewEncoder(w).Encode(models.UUIDResponse{ID: user.ID}); err != nil {
 		logger.Error(err)
 		http.Error(w, err.Error(), 500)
 	}
@@ -83,19 +82,8 @@ func CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 // CreateScooter creates a new scooter, returns its UUID
 func CreateScooter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var (
-		body []byte
-		err  error
-		sc   *models.ScooterInfo
+		err error
 	)
-	body, err = ioutil.ReadAll(r.Body)
-	if err != nil {
-		logger.Error(err)
-		http.Error(w, err.Error(), 400)
-	}
-	if err = json.Unmarshal(body, &sc); err != nil {
-		logger.Error(err)
-		http.Error(w, err.Error(), 400)
-	}
 
 	scotterID := uuid.New().String()
 	if err := db.CreateScooter(r.Context(), scotterID); err != nil {
@@ -104,7 +92,7 @@ func CreateScooter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 	}
 
 	// returns the scooter UUID
-	if err = json.NewEncoder(w).Encode(models.UUIDResponse{ID:scotterID}); err != nil {
+	if err = json.NewEncoder(w).Encode(models.UUIDResponse{ID: scotterID}); err != nil {
 		logger.Error(err)
 		http.Error(w, err.Error(), 500)
 	}

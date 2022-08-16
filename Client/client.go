@@ -69,7 +69,7 @@ func (c *Client) CreateUser(user *models.User) (*models.UUIDResponse, error) {
 }
 
 // CreateScooter creates a scooter, returns the scooter uuid.
-func (c *Client) CreateScooter(sco *models.ScooterInfo) (*models.UUIDResponse, error) {
+func (c *Client) CreateScooter() (*models.UUIDResponse, error) {
 	var (
 		j, body []byte
 		resp    *http.Response
@@ -78,7 +78,7 @@ func (c *Client) CreateScooter(sco *models.ScooterInfo) (*models.UUIDResponse, e
 	)
 
 	url := fmt.Sprintf("%s%s", c.baseUrl, "/v0.1/scooter")
-	if j, err = json.Marshal(sco); err != nil {
+	if j, err = json.Marshal(""); err != nil {
 		return nil, err
 	}
 	if resp, err = http.Post(url, "application/json", bytes.NewBuffer(j)); err != nil {
@@ -121,9 +121,9 @@ func (c *Client) BookScooter(scooterID, userID string) error {
 }
 
 // ReleaseScooter releases a scooter by a user.
-func (c *Client) ReleaseScooter(scooterID, userID string) error {
+func (c *Client) ReleaseScooter(userID string) error {
 	var err error
-	url := fmt.Sprintf("%s%s%s", c.baseUrl, "/v0.1/scooter/release/", scooterID)
+	url := fmt.Sprintf("%s%s", c.baseUrl, "/v0.1/scooter/release/")
 	// set the HTTP method, url, and request body
 	req, err := http.NewRequest(http.MethodPut, url, nil)
 	if err != nil {
@@ -145,7 +145,7 @@ func (c *Client) ReleaseScooter(scooterID, userID string) error {
 }
 
 // ListAvailableScooter returns the available scooters to ride
-func (c *Client) ListAvailableScooter(ID string) ([]models.ScooterInfo, error) {
+func (c *Client) ListAvailableScooter() ([]models.ScooterInfo, error) {
 	var (
 		body []byte
 		resp *http.Response
@@ -153,7 +153,7 @@ func (c *Client) ListAvailableScooter(ID string) ([]models.ScooterInfo, error) {
 		sco  []models.ScooterInfo
 	)
 
-	url := fmt.Sprintf("%s%s%s", c.baseUrl, "/v0.1/scooters", ID)
+	url := fmt.Sprintf("%s%s", c.baseUrl, "/v0.1/scooters")
 	if resp, err = http.Get(url); err != nil {
 		return nil, err
 	}

@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"scootin/models"
 
@@ -45,14 +46,39 @@ func (p *PostgreRepository) CreateUser(ctx context.Context, user *models.User) e
 
 // BookScooter ...
 func (p *PostgreRepository) BookScooter(ctx context.Context, ScooterID, userID string) error {
-	_, err := p.db.Exec("UPDATE scooter SET user_id = $1 Where id = $2", userID, ScooterID)
-	return err
+	var (
+		txn *sql.Tx
+		err error
+		row *sql.Row
+		notOccupied string
+	)
+	// start the transaction
+	if txn, err = p.db.Begin(); err != nil {
+		return err
+	}
+
+	// checks whether the scooter is already occupied by a user
+	if row = txn.QueryRow("Select user_id FROM scooter WHERE ID = $1 ",ScooterID); err != nil{
+		return err
+	}
+	if err := row.Scan(&notOccupied); err != nil {
+		return err
+	}
+	if notOccupied != ""{
+		return errors.New(fmt.Sprintf("we can't book the scooter %s for user $s as it's already occupied by user %s",ScooterID,userID,notOccupied))
+	}
+
+	// do the booking only if the scooter is not booked by another user
+	if _, err = txn.Exec("UPDATE scooter SET user_id = $1 Where id = $2", userID, ScooterID); err != nil{
+		return err
+	}
+	return txn.Commit()
 }
 
 // ReleaseScooter ...
-func (p *PostgreRepository) ReleaseScooter(ctx context.Context, ScooterID, userID string) error {
+func (p *PostgreRepository) ReleaseScooter(ctx context.Context, userID string) error {
 	notOccupied := ""
-	_, err := p.db.Exec("UPDATE scooter SET user_id = $1 Where id = $2", notOccupied, userID)
+	_, err := p.db.Exec("UPDATE scooter SET user_id = $1 Where user_id = $2", notOccupied, userID)
 	return err
 }
 

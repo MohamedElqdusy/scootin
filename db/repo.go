@@ -11,7 +11,7 @@ type Repository interface {
 	BookScooter(ctx context.Context, ScooterID, userID string) error
 
 	// ReleaseScooter releases the scooter booking by userID
-	ReleaseScooter(ctx context.Context, ScooterID, userID string) error
+	ReleaseScooter(ctx context.Context, userID string) error
 
 	// ListAvailableScooter lists all available scooters
 	ListAvailableScooter(ctx context.Context) ([]models.ScooterInfo, error)
@@ -57,8 +57,8 @@ func UpdateScooterCoordinates(ctx context.Context, scooterID string, coordinates
 }
 
 // ReleaseScooter ...
-func ReleaseScooter(ctx context.Context, ScooterID, userID string) error {
-	return repositoryImpl.ReleaseScooter(ctx, ScooterID, userID)
+func ReleaseScooter(ctx context.Context, userID string) error {
+	return repositoryImpl.ReleaseScooter(ctx, userID)
 }
 
 // Close ...

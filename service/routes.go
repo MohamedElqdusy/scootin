@@ -40,7 +40,7 @@ var routes = Routes{
 	},
 	Route{
 		"PUT",
-		"/v0.1/scooter/release/:id",
+		"/v0.1/scooter/release/",
 		ReleaseScooter,
 	},
 }
