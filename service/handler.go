@@ -26,6 +26,15 @@ func BookScooter(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 }
 
+func ReleaseScooter(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	scooterID := ps.ByName("scooter_id")
+	userID := r.Header.Get("user-id")
+	if err := db.ReleaseScooter(r.Context(), scooterID, userID); err != nil {
+		logger.Errorf("couldn't release scooter %s for user %s: %s", scooterID, userID, err)
+		http.Error(w, err.Error(), 500)
+	}
+}
+
 func ListAvailableScooter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	sc, err := db.ListAvailableScooter(r.Context())
 	if err != nil {
@@ -39,6 +48,7 @@ func ListAvailableScooter(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	}
 }
 
+// CreateUser creates a new user, returns the user UUID
 func CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var (
 		body []byte
@@ -62,8 +72,15 @@ func CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		logger.Error(err)
 		http.Error(w, err.Error(), 500)
 	}
+
+	// returns the user UUID
+	if err = json.NewEncoder(w).Encode(models.UUIDResponse{ID:user.ID}); err != nil {
+		logger.Error(err)
+		http.Error(w, err.Error(), 500)
+	}
 }
 
+// CreateScooter creates a new scooter, returns its UUID
 func CreateScooter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var (
 		body []byte
@@ -80,7 +97,14 @@ func CreateScooter(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 		http.Error(w, err.Error(), 400)
 	}
 
-	if err := db.CreateScooter(r.Context(), uuid.New().String()); err != nil {
+	scotterID := uuid.New().String()
+	if err := db.CreateScooter(r.Context(), scotterID); err != nil {
+		logger.Error(err)
+		http.Error(w, err.Error(), 500)
+	}
+
+	// returns the scooter UUID
+	if err = json.NewEncoder(w).Encode(models.UUIDResponse{ID:scotterID}); err != nil {
 		logger.Error(err)
 		http.Error(w, err.Error(), 500)
 	}

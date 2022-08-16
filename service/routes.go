@@ -20,22 +20,27 @@ var routes = Routes{
 	},
 	Route{
 		"GET",
-		"/scooters",
+		"/v0.1/scooters",
 		ListAvailableScooter,
 	},
 	Route{
 		"POST",
-		"/scooter",
+		"/v0.1/scooter",
 		CreateScooter,
 	},
 	Route{
+		"POST",
+		"/v0.1/user",
+		CreateUser,
+	},
+	Route{
 		"PUT",
-		"/scooter/book/:id",
+		"/v0.1/scooter/book/:id",
 		BookScooter,
 	},
 	Route{
-		"POST",
-		"/user",
-		CreateUser,
+		"PUT",
+		"/v0.1/scooter/release/:id",
+		ReleaseScooter,
 	},
 }

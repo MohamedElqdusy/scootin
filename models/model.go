@@ -1,6 +1,8 @@
 package models
 
 import (
+	"context"
+	"scootin/db"
 	"scootin/logger"
 	"sync"
 	"time"
@@ -27,10 +29,16 @@ type LocationUpdate struct {
 	Coordinates int64 // represents the scooter location update
 }
 
+// User represents the user details
 type User struct {
 	ID    string
 	Name  string
 	Email string
+}
+
+// UUIDResponse used to return the uuid for the new user's and scooter's creation
+type UUIDResponse struct{
+	ID string
 }
 
 // Event represents the scooter's trip event, End is false for Start()
@@ -79,6 +87,11 @@ func (s *Scooter) Updates() {
 			s.mu.Lock()
 			// redirect the update report to the log
 			logger.Infof("%+v", LocationUpdate{ScooterID: s.Info.ID, Coordinates: s.Info.Coordination, Time: time.Now()})
+
+			// Persist the scooter coordination in the database
+			if err := db.UpdateScooterCoordinates(context.Background(),s.Info.ID,s.Info.Coordination); err != nil {
+				logger.Errorf("couldn't persist the scooter %s updates: %s",s.Info.ID,err)
+			}
 			s.mu.Unlock()
 		}
 	}

@@ -49,6 +49,13 @@ func (p *PostgreRepository) BookScooter(ctx context.Context, ScooterID, userID s
 	return err
 }
 
+// ReleaseScooter ...
+func (p *PostgreRepository) ReleaseScooter(ctx context.Context, ScooterID, userID string) error {
+	notOccupied := ""
+	_, err := p.db.Exec("UPDATE scooter SET user_id = $1 Where id = $2", notOccupied, userID)
+	return err
+}
+
 // UpdateScooterCoordinates ...
 func (p *PostgreRepository) UpdateScooterCoordinates(ctx context.Context, scooterID string, coordinates int64) error {
 	_, err := p.db.Exec("UPDATE scooter SET coordinate = $2 Where id = $1", scooterID, coordinates)
