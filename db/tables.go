@@ -1,18 +1,17 @@
 package db
 
 var (
-	scooterTable = `CREATE TABLE IF NOT EXISTS scooter
+	scooterTable = `CREATE TABLE IF NOT EXISTS scooters
 (
     id           TEXT          NOT NULL PRIMARY KEY,
-	coordinate   INT           NOT NULL,
-    user_id       TEXT,
+	coordinate   INT,
+    user_id       TEXT
 );`
 
-	UserTable = `CREATE TABLE IF NOT EXISTS users
+	userTable = `CREATE TABLE IF NOT EXISTS users
 (
     id           TEXT   NOT NULL PRIMARY KEY,
 	Name         TEXT   NOT NULL,
-    email        TEXT   NOT NULL PRIMARY KEY,
-
+    email        TEXT   NOT NULL
 );`
 )

@@ -18,7 +18,11 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func BookScooter(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	scooterID := ps.ByName("scooter_id")
+	scooterID := ps.ByName("id")
+	if len(scooterID) == 0 {
+		logger.Errorf("Empty scooterID")
+		w.WriteHeader(http.StatusBadRequest)
+	}
 	userID := r.Header.Get("user-id")
 	if err := db.BookScooter(r.Context(), scooterID, userID); err != nil {
 		logger.Errorf("couldn't book scooter %s for user %s: %s", scooterID, userID, err)
@@ -73,7 +77,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	// returns the user UUID
-	if err = json.NewEncoder(w).Encode(models.UUIDResponse{ID: user.ID}); err != nil {
+	if err = json.NewEncoder(w).Encode(&models.UUIDResponse{ID: user.ID}); err != nil {
 		logger.Error(err)
 		http.Error(w, err.Error(), 500)
 	}

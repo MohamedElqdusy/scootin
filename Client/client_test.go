@@ -1,8 +1,13 @@
 package client
 
 import (
+	"context"
+	"os"
+	"scootin/db"
+	"scootin/logger"
 	"scootin/models"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -30,60 +35,45 @@ func TestClient(t *testing.T) {
 	assert.NoError(t, err)
 	u2.ID = uid.ID
 	assert.True(t, isValidUUID(u2.ID))
+
+	u3 := &models.User{Name: "Sam", Email: "sam@scootin.com"}
+	uid, err = c.CreateUser(u3)
+	assert.NoError(t, err)
+	u3.ID = uid.ID
+	assert.True(t, isValidUUID(u3.ID))
 	////////////////////  create the scooters  //////////////////////
-	uid, err = c.CreateScooter()
-	assert.NoError(t, err)
-	assert.True(t, isValidUUID(uid.ID))
-	sc1 := models.NewScooter(uid.ID)
-
-	uid, err = c.CreateScooter()
-	assert.NoError(t, err)
-	assert.True(t, isValidUUID(uid.ID))
-	sc2 := models.NewScooter(uid.ID)
-
-	uid, err = c.CreateScooter()
-	assert.NoError(t, err)
-	assert.True(t, isValidUUID(uid.ID))
-	sc3 := models.NewScooter(uid.ID)
+	scooterIDs := createScootersIDs(t, c)
 
 	////////////////////  ListAvailableScooter  //////////////////////
-	// map all the scooter info we have for easy "access" comparison
-	// the key is the scooter id and the value its info
-	actualScooterMap := make(map[string]models.ScooterInfo, 0)
-	actualScooterMap[sc1.Info.ID] = sc1.Info
-	actualScooterMap[sc2.Info.ID] = sc2.Info
-	actualScooterMap[sc3.Info.ID] = sc3.Info
-
 	// checks all available scooters
 	scs, err := c.ListAvailableScooter()
 	assert.NoError(t, err)
 
-	// converts scooter to map for easy checking
-	expectedScootersMap := sliceToMap(scs)
+	// converts the available scooters to map for easy checking
+	expectedScootersMap := scooterInfoSliceToMap(scs)
+	assert.Equal(t, len(expectedScootersMap), len(scooterIDs))
 	// compare the created scooter against the available in the database
-	for _, x := range expectedScootersMap {
-		assert.EqualValues(t, actualScooterMap[x.ID], x)
+	for _, scooterID := range scooterIDs {
+		assert.True(t, expectedScootersMap[scooterID])
 	}
-
 	////////////////////////////   BookScooter  ///////////////////////////
 	// book the scooter sc1 by the user u1
-	err = c.BookScooter(sc1.Info.ID, u1.ID)
+	err = c.BookScooter(scooterIDs[0], u1.ID)
 	assert.NoError(t, err)
 
 	// we should receive an error if we tried to book the same scooter by another user
-	err = c.BookScooter(sc1.Info.ID, u2.ID)
+	err = c.BookScooter(scooterIDs[0], u2.ID)
 	assert.Error(t, err)
 
 	// book the scooter sc2 by the user u2
-	err = c.BookScooter(sc2.Info.ID, u2.ID)
+	err = c.BookScooter(scooterIDs[1], u2.ID)
 	assert.NoError(t, err)
 
 	// checks all available scooters, we booked 2, so we have 1 left available
 	scs, err = c.ListAvailableScooter()
 	assert.NoError(t, err)
 	assert.Len(t, scs, 1)
-	notOccupied := ""
-	assert.Equal(t, scs[0].UserID, notOccupied)
+	assert.Equal(t, scs[0].UserID, models.NotOccupied)
 
 	////////////////////////////   ReleaseScooter  ///////////////////////////
 	err = c.ReleaseScooter(u1.ID)
@@ -92,8 +82,8 @@ func TestClient(t *testing.T) {
 	scs, err = c.ListAvailableScooter()
 	assert.NoError(t, err)
 	assert.Len(t, scs, 2)
-	assert.Equal(t, scs[0].UserID, notOccupied)
-	assert.Equal(t, scs[1].UserID, notOccupied)
+	assert.Equal(t, scs[0].UserID, models.NotOccupied)
+	assert.Equal(t, scs[1].UserID, models.NotOccupied)
 
 	err = c.ReleaseScooter(u2.ID)
 	assert.NoError(t, err)
@@ -101,9 +91,73 @@ func TestClient(t *testing.T) {
 	scs, err = c.ListAvailableScooter()
 	assert.NoError(t, err)
 	assert.Len(t, scs, 3)
-	assert.Equal(t, scs[0].UserID, notOccupied)
-	assert.Equal(t, scs[1].UserID, notOccupied)
-	assert.Equal(t, scs[2].UserID, notOccupied)
+	assert.Equal(t, scs[0].UserID, models.NotOccupied)
+	assert.Equal(t, scs[1].UserID, models.NotOccupied)
+	assert.Equal(t, scs[2].UserID, models.NotOccupied)
+
+	////////////////////////////   Scooters' Simulation  ///////////////////////////
+	// initialize postgres connection and logging for the simulation
+	setupEnv(t)
+	err = db.InitiatePostgre()
+	assert.NoError(t, err)
+
+	log := logger.NewLogger()
+	logger.InitLogger(log)
+	defer logger.Sync()
+
+	// create runtime scooters
+	scooters := make([]*Scooter, 0)
+	for _, x := range scs {
+		scooters = append(scooters, NewScooter(x.ID))
+	}
+
+	ctx := context.Background()
+
+	// book the first available scooter by the user u1
+	err = scooters[0].Start(ctx, u1.ID)
+	assert.NoError(t, err)
+
+	// book the second available scooter by the user u2
+	err = scooters[1].Start(ctx, u2.ID)
+	assert.NoError(t, err)
+
+	// book the third available scooter by the user u3
+	err = scooters[2].Start(ctx, u3.ID)
+	assert.NoError(t, err)
+
+	// checks all available scooters, all of them are booked, so we have 0 left available
+	scs, err = c.ListAvailableScooter()
+	assert.NoError(t, err)
+	assert.Len(t, scs, 0)
+
+	// end the scooters' trips  after 10s
+	ticker := time.NewTicker(10 * time.Second)
+	endTrips(t, ctx, ticker, scooters)
+
+	// checks all available scooters, none of them are booked, so we have 3 left available
+	scs, err = c.ListAvailableScooter()
+	assert.NoError(t, err)
+	assert.Len(t, scs, 3)
+}
+
+func createScootersIDs(t *testing.T, c *Client) []string {
+	l := make([]string, 0)
+	uid, err := c.CreateScooter()
+	assert.NoError(t, err)
+	assert.True(t, isValidUUID(uid.ID))
+	l = append(l, uid.ID)
+
+	uid, err = c.CreateScooter()
+	assert.NoError(t, err)
+	assert.True(t, isValidUUID(uid.ID))
+	l = append(l, uid.ID)
+
+	uid, err = c.CreateScooter()
+	assert.NoError(t, err)
+	assert.True(t, isValidUUID(uid.ID))
+	l = append(l, uid.ID)
+
+	return l
 }
 
 // isValidUUID validates uuid id
@@ -112,12 +166,39 @@ func isValidUUID(u string) bool {
 	return err == nil
 }
 
-// sliceToMap convert scooters' info from slice to a map
-// the scooter's id as a key and the scooter's info as value
-func sliceToMap(ps []models.ScooterInfo) map[string]models.ScooterInfo {
-	m := make(map[string]models.ScooterInfo)
+// scooterInfoSliceToMap convert scooters' info from slice to a map
+// the scooter's id as a key and true as value
+func scooterInfoSliceToMap(ps []models.ScooterInfo) map[string]bool {
+	m := make(map[string]bool)
 	for _, ps := range ps {
-		m[ps.ID] = ps
+		m[ps.ID] = true
 	}
 	return m
+}
+
+func setupEnv(t *testing.T) {
+	err := os.Setenv("POSTGRES_USER", "postgres")
+	assert.NoError(t, err)
+	err = os.Setenv("POSTGRES_PASSWORD", "12345")
+	assert.NoError(t, err)
+	err = os.Setenv("POSTGRES_DATABASE", "dev_db")
+	assert.NoError(t, err)
+	err = os.Setenv("POSTGRES_HOST", "localhost")
+	assert.NoError(t, err)
+	err = os.Setenv("POSTGRES_PORT", "5432")
+	assert.NoError(t, err)
+}
+
+// endTrips ends all the scooter trip after the time specified for the simulation
+func endTrips(t *testing.T, ctx context.Context, ticker *time.Ticker, scooters []*Scooter) {
+	for {
+		select {
+		case <-ticker.C:
+			for _, x := range scooters {
+				err := x.End(ctx)
+				assert.NoError(t, err)
+			}
+			return
+		}
+	}
 }

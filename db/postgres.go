@@ -22,7 +22,7 @@ func NewPostgre(url string) (*PostgreRepository, error) {
 	if _, err := db.Exec(scooterTable); err != nil {
 		return nil, fmt.Errorf("couldn't initate the Scooter table: %s", err)
 	}
-	if _, err := db.Exec(UserTable); err != nil {
+	if _, err := db.Exec(userTable); err != nil {
 		return nil, fmt.Errorf("couldn't initate the User table: %s", err)
 	}
 	return &PostgreRepository{
@@ -35,12 +35,12 @@ func (p *PostgreRepository) Close() {
 }
 
 func (p *PostgreRepository) CreateScooter(ctx context.Context, scooterID string) error {
-	_, err := p.db.Exec("INSERT INTO scooters(id) VALUES($1)", scooterID)
+	_, err := p.db.Exec("INSERT INTO scooters(id,coordinate,user_id) VALUES($1,$2,$3)", scooterID, 1, models.NotOccupied)
 	return err
 }
 
 func (p *PostgreRepository) CreateUser(ctx context.Context, user *models.User) error {
-	_, err := p.db.Exec("INSERT INTO uers(id,name,email) VALUES($1,$2,$3)", user.ID, user.Name, user.Email)
+	_, err := p.db.Exec("INSERT INTO users(id,name,email) VALUES($1,$2,$3)", user.ID, user.Name, user.Email)
 	return err
 }
 
@@ -49,8 +49,7 @@ func (p *PostgreRepository) BookScooter(ctx context.Context, ScooterID, userID s
 	var (
 		txn *sql.Tx
 		err error
-		row *sql.Row
-		notOccupied string
+		//row        *sql.Row
 	)
 	// start the transaction
 	if txn, err = p.db.Begin(); err != nil {
@@ -58,33 +57,36 @@ func (p *PostgreRepository) BookScooter(ctx context.Context, ScooterID, userID s
 	}
 
 	// checks whether the scooter is already occupied by a user
-	if row = txn.QueryRow("Select user_id FROM scooter WHERE ID = $1 ",ScooterID); err != nil{
+	res, err := txn.Exec("Select user_id FROM scooters WHERE id = $1 ", ScooterID)
+	/*res.
+	if err := row.Scan(&occupation); err != nil {
 		return err
 	}
-	if err := row.Scan(&notOccupied); err != nil {
-		return err
+	if occupation != models.NotOccupied {
+		return errors.New(fmt.Sprintf("we can't book the scooter %s for user $s as it's already occupied by user %s", ScooterID, userID, occupation))
 	}
-	if notOccupied != ""{
-		return errors.New(fmt.Sprintf("we can't book the scooter %s for user $s as it's already occupied by user %s",ScooterID,userID,notOccupied))
-	}
-
+	*/
 	// do the booking only if the scooter is not booked by another user
-	if _, err = txn.Exec("UPDATE scooter SET user_id = $1 Where id = $2", userID, ScooterID); err != nil{
+	if res, err = txn.Exec("UPDATE scooters SET user_id = $1 Where id = $2 AND user_id = $3", userID, ScooterID, models.NotOccupied); err != nil {
 		return err
+	}
+	if rowsCountAffected, err := res.RowsAffected(); err != nil {
+		return err
+	} else if rowsCountAffected == 0 {
+		return errors.New(fmt.Sprintf("we can't book the scooter %s for user %s as it's already occupied", ScooterID, userID))
 	}
 	return txn.Commit()
 }
 
 // ReleaseScooter ...
 func (p *PostgreRepository) ReleaseScooter(ctx context.Context, userID string) error {
-	notOccupied := ""
-	_, err := p.db.Exec("UPDATE scooter SET user_id = $1 Where user_id = $2", notOccupied, userID)
+	_, err := p.db.Exec("UPDATE scooters SET user_id = $1 Where user_id = $2", models.NotOccupied, userID)
 	return err
 }
 
 // UpdateScooterCoordinates ...
 func (p *PostgreRepository) UpdateScooterCoordinates(ctx context.Context, scooterID string, coordinates int64) error {
-	_, err := p.db.Exec("UPDATE scooter SET coordinate = $2 Where id = $1", scooterID, coordinates)
+	_, err := p.db.Exec("UPDATE scooters SET coordinate = $2 Where id = $1", scooterID, coordinates)
 	return err
 }
 
@@ -94,8 +96,7 @@ func (p *PostgreRepository) ListAvailableScooter(ctx context.Context) ([]models.
 		rows *sql.Rows
 		err  error
 	)
-	notOccupied := ""
-	if rows, err = p.db.Query("SELECT * FROM scooter Where user_id = $1", notOccupied); err != nil {
+	if rows, err = p.db.Query("SELECT * FROM scooters Where user_id = $1", models.NotOccupied); err != nil {
 		return nil, err
 	}
 	defer rows.Close()

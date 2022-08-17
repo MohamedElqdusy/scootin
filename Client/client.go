@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -55,11 +56,13 @@ func (c *Client) CreateUser(user *models.User) (*models.UUIDResponse, error) {
 	}
 	if resp, err = http.Post(url, "application/json", bytes.NewBuffer(j)); err != nil {
 		return nil, err
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(fmt.Sprintf("Received http status: %v", resp.StatusCode))
 	}
 	defer resp.Body.Close()
 
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	if err = json.Unmarshal(body, &uuid); err != nil {
@@ -83,11 +86,13 @@ func (c *Client) CreateScooter() (*models.UUIDResponse, error) {
 	}
 	if resp, err = http.Post(url, "application/json", bytes.NewBuffer(j)); err != nil {
 		return nil, err
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(fmt.Sprintf("Received http status: %v", resp.StatusCode))
 	}
 	defer resp.Body.Close()
 
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	if err = json.Unmarshal(body, &uuid); err != nil {
@@ -98,7 +103,10 @@ func (c *Client) CreateScooter() (*models.UUIDResponse, error) {
 
 // BookScooter books a scooter for a user.
 func (c *Client) BookScooter(scooterID, userID string) error {
-	var err error
+	var (
+		err  error
+		resp *http.Response
+	)
 	url := fmt.Sprintf("%s%s%s", c.baseUrl, "/v0.1/scooter/book/", scooterID)
 	// set the HTTP method, url, and request body
 	req, err := http.NewRequest(http.MethodPut, url, nil)
@@ -114,15 +122,20 @@ func (c *Client) BookScooter(scooterID, userID string) error {
 	h := &http.Client{}
 
 	// execute the request
-	if _, err = h.Do(req); err != nil {
+	if resp, err = h.Do(req); err != nil {
 		return err
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.New(fmt.Sprintf("Received http status: %v", resp.StatusCode))
 	}
 	return nil
 }
 
 // ReleaseScooter releases a scooter by a user.
 func (c *Client) ReleaseScooter(userID string) error {
-	var err error
+	var (
+		err  error
+		resp *http.Response
+	)
 	url := fmt.Sprintf("%s%s", c.baseUrl, "/v0.1/scooter/release/")
 	// set the HTTP method, url, and request body
 	req, err := http.NewRequest(http.MethodPut, url, nil)
@@ -138,8 +151,10 @@ func (c *Client) ReleaseScooter(userID string) error {
 	h := &http.Client{}
 
 	// execute the request
-	if _, err = h.Do(req); err != nil {
+	if resp, err = h.Do(req); err != nil {
 		return err
+	} else if resp.StatusCode != http.StatusOK {
+		return errors.New(fmt.Sprintf("Received http status: %v", resp.StatusCode))
 	}
 	return nil
 }
@@ -156,15 +171,17 @@ func (c *Client) ListAvailableScooter() ([]models.ScooterInfo, error) {
 	url := fmt.Sprintf("%s%s", c.baseUrl, "/v0.1/scooters")
 	if resp, err = http.Get(url); err != nil {
 		return nil, err
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(fmt.Sprintf("Received http status: %v", resp.StatusCode))
 	}
 	defer resp.Body.Close()
 
 	if body, err = ioutil.ReadAll(resp.Body); err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	if err = json.Unmarshal(body, &sco); err != nil {
 		return sco, err
 	}
-	return nil, nil
+	return sco, nil
 }
