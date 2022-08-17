@@ -1,0 +1,26 @@
+version: "3"
+
+services:
+  postgresdb:
+    image: postgres:10.6-alpine
+    volumes:
+      - ./deployment:/docker-entrypoint-initdb.d
+    environment:
+      - POSTGRES_MULTIPLE_DATABASES=dev_db,test_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=12345
+    ports:
+      - "5432:5432"
+  scootin-srv:
+    build: "."
+    ports:
+      - "8080:8080"
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "12345"
+      POSTGRES_DATABASE: "dev_db"
+      POSTGRES_HOST: "postgresdb"
+      POSTGRES_PORT: 5432
+    restart: "always"
+    depends_on:
+      - postgresdb
