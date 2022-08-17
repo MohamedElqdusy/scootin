@@ -176,6 +176,7 @@ func scooterInfoSliceToMap(ps []models.ScooterInfo) map[string]bool {
 	return m
 }
 
+// setupEnv sets the postgres envs
 func setupEnv(t *testing.T) {
 	err := os.Setenv("POSTGRES_USER", "postgres")
 	assert.NoError(t, err)
